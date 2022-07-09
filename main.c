@@ -6,21 +6,12 @@
 #include "lispc.h"
 
 #define DEBUG 1
+#define MAX_OUTPUT_FILENAME_SIZE 64
 
 void usage(byte status)
 {
     fprintf(stderr, "Usage: ./lispc <file>\n");
     exit(status);
-}
-
-char *toOutputFilename(const char *inputFilename)
-{
-    const char *extPlace = strrchr(inputFilename, '.');
-    size_t filenameLength = extPlace - inputFilename;
-    char *outputFilename = malloc(sizeof(char) * filenameLength + 3);
-    strncpy(outputFilename, inputFilename, filenameLength);
-    strcpy(outputFilename + filenameLength, ".s");
-    return outputFilename;
 }
 
 int main(int argc, char **argv)
@@ -39,9 +30,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error: Cannot open \"%s\"\n", inputFilename);
         exit(EXIT_FAILURE);
     }
-    const char *outputFilename = toOutputFilename(inputFilename);
+    char outputFilename[MAX_OUTPUT_FILENAME_SIZE];
+    const char *ep = strrchr(inputFilename, '.');
+    size_t filenameLength = ep == NULL ? strlen(inputFilename) : ep - inputFilename;
+    strncpy(outputFilename, inputFilename, filenameLength);
+    strcpy(outputFilename + filenameLength, ".s");
     outputStream = fopen(outputFilename, "w");
 #endif
+    // Token *token = tokenize(inputStream);
     fclose(inputStream);
     fclose(outputStream);
     return EXIT_SUCCESS;
