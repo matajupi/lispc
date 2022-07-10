@@ -6,30 +6,32 @@ typedef signed char sbyte;
 typedef enum GeneratorType GeneratorType;
 enum GeneratorType
 {
-    ARM32,
+    GEN_ARM32,
 };
 
 typedef enum TokenType TokenType;
 enum TokenType
 {
-    LeftParen,
-    RightParen,
-    Quote,
-    DoubleQuote,
-    Integer,
-    Numeric,
-    Identifier,
+    TK_LEFT_PAREN,
+    TK_RIGHT_PAREN,
+    TK_QUOTE,
+    TK_DOUBLE_QUOTE,
+    TK_INTEGER,
+    TK_NUMERIC,
+    TK_IDENTIFIER,
 };
 
 typedef struct Token Token;
 struct Token
 {
     TokenType type;
-    const char *text;
+    char *identifier;
     long long integer;
     long double numeric;
     Token *next;
 };
+
+void dumpToken(FILE *, Token *);
 
 Token *tokenize(FILE *);
 
