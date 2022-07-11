@@ -16,6 +16,7 @@ enum TokenType
     TK_RIGHT_PAREN,
     TK_QUOTE,
     TK_DOUBLE_QUOTE,
+    TK_SEMICOLON,
     TK_INTEGER,
     TK_NUMERIC,
     TK_IDENTIFIER,

@@ -49,6 +49,10 @@ static bool isInteger(char *begin, char *end, long long *integer)
         begin++;
     }
 
+    if (begin == end) {
+        return false;
+    }
+
     for (char *cur = begin; cur != end; cur++) {
         if (isdigit(*cur)) {
             *integer += (*cur - '0') * powl(10, end - cur - 1);
@@ -70,6 +74,10 @@ static bool isNumeric(char *begin, char *end, long double *numeric)
     else if (*begin == '-') {
         factor = -1;
         begin++;
+    }
+
+    if (begin == end) {
+        return false;
     }
 
     char *point = NULL;
@@ -106,40 +114,46 @@ Token *tokenize(FILE *inputStream)
     Token head;
     Token *curToken = &head;
     char chunk[MAX_CHUNK_SIZE];
+    Token *token;
     while (fscanf(inputStream, "%s", chunk) > 0) {
-printf("%s\n", chunk);
         for (char *beg = chunk, *cur = chunk; ; cur++) {
-            if (strchr("()'\"", *cur) || *cur == '\0') {
-                Token *token = calloc(1, sizeof(Token));
+            if (strchr("()'\";", *cur) || *cur == '\0') {
                 if (beg == cur) {
-                    goto BEGIN_SWITCH;
+                    goto END_REGIST_TOKEN;
                 }
-                long long integer;
+
+                token = calloc(1, sizeof(Token));
+                long long integer = 0;
                 if (isInteger(beg, cur, &integer)) {
                     token->type = TK_INTEGER;
                     token->integer = integer;
-                    goto END_IF;
+                    goto REGIST_TOKEN;
                 }
-                long double numeric;
+                long double numeric = 0;
                 if (isNumeric(beg, cur, &numeric)) {
                     token->type = TK_NUMERIC;
                     token->numeric = numeric;
-                    goto END_IF;
+                    goto REGIST_TOKEN;
                 }
                 token->type = TK_IDENTIFIER;
                 char *identifier = calloc(MAX_CHUNK_SIZE, sizeof(char));
                 strncpy(identifier, beg, cur - beg);
                 identifier[cur - beg + 1] = '\0';
                 token->identifier = identifier;
-            END_IF:
+
+            REGIST_TOKEN:
                 curToken->next = token;
                 curToken = token;
+
+            END_REGIST_TOKEN:
                 if (*cur == '\0') {
                     break;
                 }
 
                 token = calloc(1, sizeof(Token));
-            BEGIN_SWITCH:
+                if (*cur == '\0') {
+                    break;
+                }
                 switch (*cur) {
                     case '(':
                         token->type = TK_LEFT_PAREN;
@@ -152,6 +166,9 @@ printf("%s\n", chunk);
                         break;
                     case '"':
                         token->type = TK_DOUBLE_QUOTE;
+                        break;
+                    case ';':
+                        token->type = TK_SEMICOLON;
                         break;
                 }
                 curToken->next = token;
