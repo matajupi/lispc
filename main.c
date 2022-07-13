@@ -37,12 +37,12 @@ int main(int argc, char **argv)
     strcpy(outputFilename + filenameLength, ".s");
     outputStream = fopen(outputFilename, "w");
 #endif
-    Token *tokens = tokenize(inputStream);
-    // Node *node = parse(tokens);
+    Token *token = tokenize(inputStream);
+    Node *node = parse(token);
 
-for (Token *cur = tokens; cur; cur = cur->next) {
-    dumpToken(stdout, cur);
-}
+// for (Token *cur = token; cur; cur = cur->next) {
+//     dumpToken(stdout, cur);
+// }
 
     fclose(inputStream);
     fclose(outputStream);

@@ -21,6 +21,7 @@ enum TokenType
     TK_INTEGER,
     TK_NUMERIC,
     TK_IDENTIFIER,
+    TK_EOF,
 };
 
 typedef struct Token Token;
@@ -35,7 +36,7 @@ struct Token
 
 void dumpToken(FILE *, Token *);
 Token *tokenize(FILE *);
-void freeToken(Token *token);
+void freeToken(Token *);
 
 typedef enum NodeType NodeType;
 enum NodeType
@@ -56,5 +57,12 @@ struct Node
     NodeType type;
     Node *carNode;
     Node *cdrNode;
+
+    long long integer;
+    long double numeric;
+    char *identifier;
+    char *text;
 };
+
+Node *parse(Token *);
 

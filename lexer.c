@@ -34,6 +34,9 @@ void dumpToken(FILE *stream, Token *token)
         case TK_IDENTIFIER:
             printf("%s\n", token->identifier);
             return;
+        case TK_EOF:
+            printf("EOF\n");
+            return;
     }
     fprintf(stream, "%c\n", dumpChar);
 }
@@ -221,6 +224,10 @@ Token *tokenize(FILE *inputStream)
         }
     }
     Token *token = tokenizeChunk(chunkFirst, chunkLast);
+    curToken->next = token;
+    curToken = token;
+    token = calloc(1, sizeof(Token));
+    token->type = TK_EOF;
     curToken->next = token;
 
     removeEmptyTokens(&headToken);
