@@ -18,6 +18,7 @@ enum TokenType
     TK_RIGHT_PAREN,
     TK_QUOTE,
     TK_DOUBLE_QUOTE,
+    TK_DOT,
     TK_INTEGER,
     TK_NUMERIC,
     TK_IDENTIFIER,
@@ -41,14 +42,16 @@ void freeToken(Token *);
 typedef enum NodeType NodeType;
 enum NodeType
 {
+    ND_TOP_LEVEL,
     ND_PAIR,
     ND_INTEGER,
     ND_NUMERIC,
+    ND_IDENTIFIER,
     ND_SYMBOL,
     ND_STRING,
-    ND_NULL,
     ND_TRUE,
     ND_FALSE,
+    ND_NULL,
 };
 
 typedef struct Node Node;
@@ -57,6 +60,7 @@ struct Node
     NodeType type;
     Node *carNode;
     Node *cdrNode;
+    Node *next;
 
     long long integer;
     long double numeric;

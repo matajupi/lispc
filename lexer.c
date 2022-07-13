@@ -25,20 +25,23 @@ void dumpToken(FILE *stream, Token *token)
         case TK_DOUBLE_QUOTE:
             dumpChar = '"';
             break;
+        case TK_DOT:
+            dumpChar = '.':
+            break;
         case TK_INTEGER:
-            printf("%lld\n", token->integer);
+            fprintf(stream, "%lld", token->integer);
             return;
         case TK_NUMERIC:
-            printf("%Lf\n", token->numeric);
+            fprintf(stream, "%Lf", token->numeric);
             return;
         case TK_IDENTIFIER:
-            printf("%s\n", token->identifier);
+            fprintf(stream, "%s", token->identifier);
             return;
         case TK_EOF:
-            printf("EOF\n");
+            fprintf(stream, "EOF");
             return;
     }
-    fprintf(stream, "%c\n", dumpChar);
+    fprintf(stream, "%c", dumpChar);
 }
 
 void freeToken(Token *token)
@@ -49,7 +52,7 @@ void freeToken(Token *token)
 
 static bool isReservedChar(char c)
 {
-    return strchr("()'\";", c) != NULL;
+    return strchr("()'\".;", c) != NULL;
 }
 
 static bool isInteger(char *begin, char *end, long long *integer)
@@ -160,7 +163,11 @@ static Token *tokenizeReservedChar(char c)
             token->type = TK_QUOTE;
             break;
         case '"':
+            // TODO: Change behavior
             token->type = TK_DOUBLE_QUOTE;
+            break;
+        case '.':
+            token->type = TK_DOT;
             break;
     }
     return token;
