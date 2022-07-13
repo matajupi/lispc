@@ -40,13 +40,14 @@ int main(int argc, char **argv)
 #endif
     Token *token = tokenize(inputStream);
     Node *node = parse(token);
+    generate(node, outputStream, GEN_ARM32);
 
 // for (Token *cur = token; cur; cur = cur->next) {
-//     dumpToken(stdout, cur);
+//     dumpToken(outputSream, cur);
 //     printf("\n");
 // }
 
-dumpNode(stdout, node);
+// dumpNode(outputStream, node);
 
     fclose(inputStream);
     fclose(outputStream);

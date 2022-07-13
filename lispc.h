@@ -5,12 +5,6 @@
 typedef unsigned char byte;
 typedef signed char sbyte;
 
-typedef enum GeneratorType GeneratorType;
-enum GeneratorType
-{
-    GEN_ARM32,
-};
-
 typedef enum TokenType TokenType;
 enum TokenType
 {
@@ -61,4 +55,12 @@ struct Node
 void dumpNode(FILE *, Node *);
 void unexpectedTokenError(byte);
 Node *parse(Token *);
+
+typedef enum GeneratorType GeneratorType;
+enum GeneratorType
+{
+    GEN_ARM32,
+};
+
+void generate(Node *, FILE *, GeneratorType);
 
