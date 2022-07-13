@@ -38,9 +38,21 @@ void dumpToken(FILE *stream, Token *token)
     fprintf(stream, "%c\n", dumpChar);
 }
 
+void freeToken(Token *token)
+{
+    free(token->identifier);
+    free(token);
+}
+
+static bool isReservedChar(char c)
+{
+    return strchr("()'\";", c) != NULL;
+}
+
 static bool isInteger(char *begin, char *end, long long *integer)
 {
     int factor = 1;
+
     if (*begin == '+') {
         begin++;
     }
@@ -68,6 +80,7 @@ static bool isInteger(char *begin, char *end, long long *integer)
 static bool isNumeric(char *begin, char *end, long double *numeric)
 {
     int factor = 1;
+
     if (*begin == '+') {
         begin++;
     }
@@ -81,7 +94,7 @@ static bool isNumeric(char *begin, char *end, long double *numeric)
     }
 
     char *point = NULL;
-    for (char *cur = begin; cur != end; cur++) {
+    for (char *cur = begin; *cur != '\0'; cur++) {
         if (*cur == '.') {
             if (point) {
                 return false;
@@ -109,74 +122,108 @@ static bool isNumeric(char *begin, char *end, long double *numeric)
     return true;
 }
 
-Token *tokenize(FILE *inputStream)
+static Token *tokenizeChunk(char *begin, char *end)
 {
-    Token head;
-    Token *curToken = &head;
-    char chunk[MAX_CHUNK_SIZE];
-    Token *token;
-    while (fscanf(inputStream, "%s", chunk) > 0) {
-        for (char *beg = chunk, *cur = chunk; ; cur++) {
-            if (strchr("()'\";", *cur) || *cur == '\0') {
-                if (beg == cur) {
-                    goto END_REGIST_TOKEN;
-                }
+    Token *token = calloc(1, sizeof(Token));
+    long long integer;
+    long double numeric;
+    if (isInteger(begin, end, &integer)) {
+        token->type = TK_INTEGER;
+        token->integer = integer;
+    }
+    else if (isNumeric(begin, end, &numeric)) {
+        token->type = TK_NUMERIC;
+        token->numeric = numeric;
+    }
+    else {
+        token->type = TK_IDENTIFIER;
+        token->identifier = malloc(end - begin + 1);
+        strncpy(token->identifier, begin, end - begin);
+    }
+    return token;
+}
 
-                token = calloc(1, sizeof(Token));
-                long long integer = 0;
-                if (isInteger(beg, cur, &integer)) {
-                    token->type = TK_INTEGER;
-                    token->integer = integer;
-                    goto REGIST_TOKEN;
-                }
-                long double numeric = 0;
-                if (isNumeric(beg, cur, &numeric)) {
-                    token->type = TK_NUMERIC;
-                    token->numeric = numeric;
-                    goto REGIST_TOKEN;
-                }
-                token->type = TK_IDENTIFIER;
-                char *identifier = calloc(MAX_CHUNK_SIZE, sizeof(char));
-                strncpy(identifier, beg, cur - beg);
-                identifier[cur - beg + 1] = '\0';
-                token->identifier = identifier;
+static Token *tokenizeReservedChar(char c)
+{
+    Token *token = calloc(1, sizeof(Token));
+    switch (c) {
+        case '(':
+            token->type = TK_LEFT_PAREN;
+            break;
+        case ')':
+            token->type = TK_RIGHT_PAREN;
+            break;
+        case '\'':
+            token->type = TK_QUOTE;
+            break;
+        case '"':
+            token->type = TK_DOUBLE_QUOTE;
+            break;
+    }
+    return token;
+}
 
-            REGIST_TOKEN:
-                curToken->next = token;
-                curToken = token;
-
-            END_REGIST_TOKEN:
-                if (*cur == '\0') {
-                    break;
-                }
-
-                token = calloc(1, sizeof(Token));
-                if (*cur == '\0') {
-                    break;
-                }
-                switch (*cur) {
-                    case '(':
-                        token->type = TK_LEFT_PAREN;
-                        break;
-                    case ')':
-                        token->type = TK_RIGHT_PAREN;
-                        break;
-                    case '\'':
-                        token->type = TK_QUOTE;
-                        break;
-                    case '"':
-                        token->type = TK_DOUBLE_QUOTE;
-                        break;
-                    case ';':
-                        token->type = TK_SEMICOLON;
-                        break;
-                }
-                curToken->next = token;
-                curToken = token;
-                beg = cur + 1;
-            }
+static void removeEmptyTokens(Token *head)
+{
+    Token *prev = head;
+    Token *cur  = head->next;
+    while (cur != NULL) {
+        if (cur->type == TK_IDENTIFIER
+         && strlen(cur->identifier) == 0) {
+            prev->next = cur->next;
+            freeToken(cur);
+            cur = prev->next;
+        }
+        else {
+            prev = cur;
+            cur = prev->next;
         }
     }
-    return head.next;
+}
+
+static void skipComment(FILE *inputStream)
+{
+    char c;
+    while ((c = fgetc(inputStream)) != EOF && c != '\n');
+}
+
+Token *tokenize(FILE *inputStream)
+{
+    Token headToken;
+    Token *curToken = &headToken;
+    char c,
+         chunkFirst[MAX_CHUNK_SIZE],
+         *chunkLast  = chunkFirst;
+
+    while ((c = fgetc(inputStream)) != EOF) {
+        bool skipCharFlag     = false,
+             reservedCharFlag = false;
+        if ((skipCharFlag = isspace(c))
+         || (reservedCharFlag = isReservedChar(c))) {
+            Token *token = tokenizeChunk(chunkFirst, chunkLast);
+            curToken->next = token;
+            curToken = token;
+            chunkLast = chunkFirst;
+
+            if (reservedCharFlag) {
+                if (c == ';') {
+                    skipComment(inputStream);
+                }
+                else {
+                    token = tokenizeReservedChar(c);
+                    curToken->next = token;
+                    curToken = token;
+                }
+            }
+        }
+        else {
+            *(chunkLast++) = c;
+        }
+    }
+    Token *token = tokenizeChunk(chunkFirst, chunkLast);
+    curToken->next = token;
+
+    removeEmptyTokens(&headToken);
+    return headToken.next;
 }
 
