@@ -20,6 +20,12 @@ void dumpToken(FILE *stream, Token *token)
         case TK_RIGHT_PAREN:
             dumpChar = ')';
             break;
+        case TK_QUOTE:
+            dumpChar = '\'';
+            break;
+        case TK_DOT:
+            dumpChar = '.';
+            break;
         case TK_STRING:
             fprintf(stream, "\"%s\"", token->text);
             return;
@@ -47,7 +53,7 @@ void freeToken(Token *token)
 
 static bool isReservedChar(char c)
 {
-    return strchr("()\";", c) != NULL;
+    return strchr("()'\";", c) != NULL;
 }
 
 static bool isInteger(char *begin, char *end, long long *integer)
@@ -174,6 +180,12 @@ static Token *tokenizeReservedChar(char c)
         case ')':
             token->type = TK_RIGHT_PAREN;
             break;
+        case '\'':
+            token->type = TK_QUOTE;
+            break;
+        case '.':
+            token->type = TK_DOT;
+            break;
     }
     return token;
 }
@@ -188,14 +200,14 @@ Token *tokenize(FILE *inputStream)
 {
     Token headToken;
     Token *curToken = &headToken;
+    char c,
+         chunkBegin[MAX_CHUNK_SIZE],
+         *chunkEnd  = chunkBegin;
     Token *token;
-    char c;
-    char chunkBegin[MAX_CHUNK_SIZE];
-    char *chunkEnd  = chunkBegin;
 
     while ((c = fgetc(inputStream)) != EOF) {
-        bool skipCharFlag     = false;
-        bool reservedCharFlag = false;
+        bool skipCharFlag     = false,
+             reservedCharFlag = false;
         if ((skipCharFlag = isspace(c))
          || (reservedCharFlag = isReservedChar(c))) {
             if (chunkBegin < chunkEnd) {

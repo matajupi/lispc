@@ -65,8 +65,8 @@ static void expectToken(TokenType type)
 {
     if (curToken->type == type) {
         advanceToken();
-        return;
     }
+fprintf(stderr, "EXPECT_TOKEN\n");
     unexpectedTokenError(EXIT_FAILURE);
 }
 
@@ -116,7 +116,6 @@ static Node *parsePrimitive()
 {
     Node *node = createNode(ND_PRIMITIVE);
     node->token = currentToken();
-    advanceToken();
     return node;
 }
 
@@ -134,6 +133,7 @@ static Node *parseRecursive()
             node = parsePrimitive();
             break;
         default:
+fprintf(stderr, "Haha, You are foolish!\n");
             unexpectedTokenError(EXIT_FAILURE);
     }
     return node;

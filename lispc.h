@@ -16,9 +16,7 @@ enum TokenType
 {
     TK_LEFT_PAREN,
     TK_RIGHT_PAREN,
-    TK_QUOTE,
-    TK_DOUBLE_QUOTE,
-    TK_DOT,
+    TK_STRING,
     TK_INTEGER,
     TK_NUMERIC,
     TK_IDENTIFIER,
@@ -30,6 +28,7 @@ struct Token
 {
     TokenType type;
     char *identifier;
+    char *text;
     long long integer;
     long double numeric;
     Token *next;
@@ -44,13 +43,7 @@ enum NodeType
 {
     ND_TOP_LEVEL,
     ND_PAIR,
-    ND_INTEGER,
-    ND_NUMERIC,
-    ND_IDENTIFIER,
-    ND_SYMBOL,
-    ND_STRING,
-    ND_TRUE,
-    ND_FALSE,
+    ND_PRIMITIVE,
     ND_NULL,
 };
 
@@ -62,11 +55,10 @@ struct Node
     Node *cdrNode;
     Node *next;
 
-    long long integer;
-    long double numeric;
-    char *identifier;
-    char *text;
+    Token *token;
 };
 
+void dumpNode(FILE *, Node *);
+void unexpectedTokenError(byte);
 Node *parse(Token *);
 

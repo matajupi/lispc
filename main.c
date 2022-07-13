@@ -32,7 +32,8 @@ int main(int argc, char **argv)
     }
     char outputFilename[MAX_OUTPUT_FILENAME_SIZE];
     char *ep = strrchr(inputFilename, '.');
-    size_t filenameLength = ep == NULL ? strlen(inputFilename) : ep - inputFilename;
+    size_t filenameLength = ep == NULL ? strlen(inputFilename)
+                                       : ep - inputFilename;
     strncpy(outputFilename, inputFilename, filenameLength);
     strcpy(outputFilename + filenameLength, ".s");
     outputStream = fopen(outputFilename, "w");
@@ -42,7 +43,10 @@ int main(int argc, char **argv)
 
 // for (Token *cur = token; cur; cur = cur->next) {
 //     dumpToken(stdout, cur);
+//     printf("\n");
 // }
+
+dumpNode(stdout, node);
 
     fclose(inputStream);
     fclose(outputStream);
