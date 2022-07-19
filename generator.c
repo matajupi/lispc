@@ -1,43 +1,16 @@
 #include "lispc.h"
 
-static GeneratorType genType;
+static FILE *outputStream;
 
-static void generatePair(Node *node, FILE *outputStream)
+static void generateRecursive(Node *node, Environment *env)
 {
-    if (isInteger(node)) {
-        generateInteger(node, outputStream);
-    }
-    else if (isNumeric(node)) {
-        generateNumeric(node, outputStream);
-    }
-    else if (isString(node)) {
-        generateString(node, outputStream);
-    }
+    // TODO: 
 }
 
-static void generateRecursive(Node *node, FILE *outputStream)
+void generate(Node *topNode, FILE *ostream, GeneratorType type)
 {
-    switch (node->type) {
-        case ND_TOP_LEVEL:
-            for (Node *cur = node; cur != NULL; cur = cur->next) {
-                generatePair(cur, outputStream);
-            }
-            break;
-        case ND_PAIR:
-            generatePair(node, outputStream);
-            break;
-        case ND_PRIMITIVE:
-            generatePrimitive(node, outputStream);
-            break;
-        case ND_NULL:
-            generateNull(node, outputStream);
-            break;
-    }
-}
-
-void generate(Node *node, FILE *outputStream, GeneratorType type)
-{
-    genType = type;
-    generateRecursive(node, outputStream);
+    outputStream = ostream;
+    Environment *env = createEnvironment();
+    generateRecursive(topNode, env);
 }
 

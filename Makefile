@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-g -Wall
 LDFLAGS = -lm
 TARGET=lispc
-SRCS=main.c lexer.c parser.c
+SRCS=main.c lexer.c error.c preprocessor.c parser.c
 OBJS=$(SRCS:.c=.o)
 
 INCDIR=-I../inc

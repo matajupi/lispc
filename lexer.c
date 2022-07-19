@@ -7,53 +7,80 @@
 
 #include "lispc.h"
 
-#define MAX_CHUNK_SIZE 256
-#define MAX_STRING_BUFFER_SIZE 1024
+#define CHUNK_BUFFER_SIZE 1024
 
-void dumpToken(FILE *stream, Token *token)
+static char reservedChars[] = "()\";";
+static FILE *inputStream;
+
+// ================ Token list ================
+static Token *curToken;
+
+static void appendToken(Token *token)
 {
-    char dumpChar;
-    switch (token->type) {
-        case TK_LEFT_PAREN:
-            dumpChar = '(';
-            break;
-        case TK_RIGHT_PAREN:
-            dumpChar = ')';
-            break;
-        case TK_STRING:
-            fprintf(stream, "\"%s\"", token->text);
-            return;
-        case TK_INTEGER:
-            fprintf(stream, "%lld", token->integer);
-            return;
-        case TK_NUMERIC:
-            fprintf(stream, "%Lf", token->numeric);
-            return;
-        case TK_IDENTIFIER:
-            fprintf(stream, "%s", token->identifier);
-            return;
-        case TK_EOF:
-            // fprintf(stream, "EOF");
-            return;
-    }
-    fprintf(stream, "%c", dumpChar);
+    curToken->next = token;
+    curToken = token;
 }
 
-void freeToken(Token *token)
+// ================ Chunk buffer ================
+static char chunkBuffer[CHUNK_BUFFER_SIZE];
+static char *chunkEnd = chunkBuffer; // TODO: ?
+
+static void appendCharToChunkBuffer(char c)
 {
-    free(token->identifier);
-    free(token);
+    *(chunkEnd++) = c;
+}
+
+static void resetChunkBuffer()
+{
+    chunkEnd = chunkBuffer;
+}
+
+// ================ Lexer ================
+Token *createToken(TokenType type)
+{
+    Token *token = calloc(1, sizeof(Token));
+    token->type = type;
+    return token;
+}
+
+static Token *createNumeric(long double numeric)
+{
+    Token *token = createToken(TK_NUMERIC);
+    token->numeric = numeric;
+    return token;
+}
+
+static Token *createInteger(long long integer)
+{
+    Token *token = createToken(TK_INTEGER);
+    token->integer = integer;
+    return token;
+}
+
+static Token *createIdentifier()
+{
+    Token *token = createToken(TK_IDENTIFIER);
+    token->identifier = malloc(sizeof(char)
+                               * (chunkEnd - chunkBuffer + 1));
+    strncpy(token->identifier, chunkBuffer, chunkEnd - chunkBuffer);
+    return token;
+}
+
+static bool isSkipChar(char c)
+{
+    return isspace(c);
 }
 
 static bool isReservedChar(char c)
 {
-    return strchr("()\";", c) != NULL;
+    return strchr(reservedChars, c) != NULL || c == EOF;
 }
 
-static bool isInteger(char *begin, char *end, long long *integer)
+static bool isNumeric(long double *numeric)
 {
-    int factor = 1;
+    char *begin = chunkBuffer;
 
+    int factor = 1;
     if (*begin == '+') {
         begin++;
     }
@@ -62,40 +89,12 @@ static bool isInteger(char *begin, char *end, long long *integer)
         begin++;
     }
 
-    if (begin == end) {
-        return false;
-    }
-
-    for (char *cur = begin; cur != end; cur++) {
-        if (isdigit(*cur)) {
-            *integer += (*cur - '0') * powl(10, end - cur - 1);
-        }
-        else {
-            return false;
-        }
-    }
-    *integer *= factor;
-    return true;
-}
-
-static bool isNumeric(char *begin, char *end, long double *numeric)
-{
-    int factor = 1;
-
-    if (*begin == '+') {
-        begin++;
-    }
-    else if (*begin == '-') {
-        factor = -1;
-        begin++;
-    }
-
-    if (begin == end) {
+    if (begin == chunkEnd) {
         return false;
     }
 
     char *point = NULL;
-    for (char *cur = begin; cur != end; cur++) {
+    for (char *cur = begin; cur != chunkEnd; cur++) {
         if (*cur == '.') {
             if (point) {
                 return false;
@@ -107,7 +106,7 @@ static bool isNumeric(char *begin, char *end, long double *numeric)
         return false;
     }
 
-    for (char *cur = begin; cur != end; cur++) {
+    for (char *cur = begin; cur != chunkEnd; cur++) {
         if (*cur == '.') {
             continue;
         }
@@ -123,117 +122,155 @@ static bool isNumeric(char *begin, char *end, long double *numeric)
     return true;
 }
 
-static Token *tokenizeChunk(char *begin, char *end)
+static bool isInteger(long long *integer)
 {
-    Token *token = calloc(1, sizeof(Token));
-    long double numeric = 0.0;
-    long long integer = 0;
-    if (isNumeric(begin, end, &numeric)) {
-        token->type = TK_NUMERIC;
-        token->numeric = numeric;
-    }
-    else if (isInteger(begin, end, &integer)) {
-        token->type = TK_INTEGER;
-        token->integer = integer;
-    }
-    else {
-        token->type = TK_IDENTIFIER;
-        token->identifier = malloc(sizeof(char) * (end - begin + 1));
-        strncpy(token->identifier, begin, end - begin);
-    }
-    return token;
-}
+    char *begin = chunkBuffer;
 
-static Token *tokenizeString(FILE *inputStream)
-{
-    char c,
-         bufferBegin[MAX_STRING_BUFFER_SIZE],
-         *bufferEnd = bufferBegin;
-    while ((c = fgetc(inputStream)) != '"') {
-        if (c == EOF) {
-            unexpectedTokenError(EXIT_FAILURE);
+    int factor = 1;
+    if (*begin == '+') {
+        begin++;
+    }
+    else if (*begin == '-') {
+        factor = -1;
+        begin++;
+    }
+
+    if (begin == chunkEnd) {
+        return false;
+    }
+
+    for (char *cur = begin; cur != chunkEnd; cur++) {
+        if (isdigit(*cur)) {
+            *integer += (*cur - '0') * powl(10, chunkEnd - cur - 1);
         }
-        *(bufferEnd++) = c;
+        else {
+            return false;
+        }
     }
-    *(bufferEnd++) = '\0';
-
-    Token *token = calloc(1, sizeof(Token));
-    token->type = TK_STRING;
-    token->text = malloc(sizeof(char) * (bufferEnd - bufferBegin + 1));
-    strcpy(token->text, bufferBegin);
-    return token;
+    *integer *= factor;
+    return true;
 }
 
-static Token *tokenizeReservedChar(char c)
-{
-    Token *token = calloc(1, sizeof(Token));
-    switch (c) {
-        case '(':
-            token->type = TK_LEFT_PAREN;
-            break;
-        case ')':
-            token->type = TK_RIGHT_PAREN;
-            break;
-    }
-    return token;
-}
-
-static void skipComment(FILE *inputStream)
+static void skipComment()
 {
     char c;
     while ((c = fgetc(inputStream)) != EOF && c != '\n');
 }
 
-Token *tokenize(FILE *inputStream)
+static void tokenizeString()
 {
-    Token headToken;
-    Token *curToken = &headToken;
-    Token *token;
     char c;
-    char chunkBegin[MAX_CHUNK_SIZE];
-    char *chunkEnd  = chunkBegin;
+    while ((c = fgetc(inputStream)) != '"') {
+        if (c == EOF) {
+            illegalStringError(EXIT_FAILURE);
+        }
+        appendCharToChunkBuffer(c);
+    }
 
-    while ((c = fgetc(inputStream)) != EOF) {
-        bool skipCharFlag     = false;
-        bool reservedCharFlag = false;
-        if ((skipCharFlag = isspace(c))
-         || (reservedCharFlag = isReservedChar(c))) {
-            if (chunkBegin < chunkEnd) {
-                token = tokenizeChunk(chunkBegin, chunkEnd);
-                curToken->next = token;
-                curToken = token;
-                chunkEnd = chunkBegin;
-            }
+    Token *token = createToken(TK_STRING);
+    token->string = malloc(sizeof(char) * (chunkEnd - chunkBuffer + 1));
+    strncpy(token->string, chunkBuffer, chunkEnd - chunkBuffer);
+    appendToken(token);
+    resetChunkBuffer();
+}
 
-            if (reservedCharFlag) {
-                if (c == ';') {
-                    skipComment(inputStream);
-                    continue;
-                }
+static void tokenizeChunk()
+{
+    if (chunkBuffer == chunkEnd) {
+        return;
+    }
 
-                if (c == '"') {
-                    token = tokenizeString(inputStream);
-                }
-                else {
-                    token = tokenizeReservedChar(c);
-                }
-                curToken->next = token;
-                curToken = token;
-            }
+    Token *token;
+    long double numeric = 0;
+    long long integer = 0.0;
+    if (isNumeric(&numeric)) {
+        token = createNumeric(numeric);
+    }
+    else if (isInteger(&integer)) {
+        token = createInteger(integer);
+    }
+    else {
+        token = createIdentifier();
+    }
+    appendToken(token);
+    resetChunkBuffer();
+}
+
+static void tokenizeReservedChar(char c)
+{
+    if (c == ';') {
+        skipComment();
+    }
+    else if (c == '"') {
+        tokenizeString();
+    }
+    else if (c == EOF) {
+        Token *token = createToken(TK_EOF);
+        appendToken(token);
+    }
+    else {
+        TokenType type = (TokenType)(strchr(reservedChars, c)
+                                     - reservedChars);
+        Token *token = createToken(type);
+        appendToken(token);
+    }
+}
+
+Token *tokenize(FILE *istream)
+{
+    inputStream = istream;
+
+    // Initialize token list
+    Token headToken;
+    curToken = &headToken;
+
+    while (true) {
+        char c = fgetc(inputStream);
+
+        if (isSkipChar(c)) {
+            tokenizeChunk();
+        }
+        else if (isReservedChar(c)) {
+            tokenizeChunk();
+            tokenizeReservedChar(c);
         }
         else {
-            *(chunkEnd++) = c;
+            appendCharToChunkBuffer(c);
+        }
+
+        if (c == EOF) {
+            break;
         }
     }
-    if (chunkBegin < chunkEnd) {
-        token = tokenizeChunk(chunkBegin, chunkEnd);
-        curToken->next = token;
-        curToken = token;
-    }
-    token = calloc(1, sizeof(Token));
-    token->type = TK_EOF;
-    curToken->next = token;
-
     return headToken.next;
+}
+
+// ================ Debug ================
+void dumpToken(FILE *outputStream, Token *token)
+{
+    char dumpChar;
+    switch (token->type) {
+        case TK_LEFT_PAREN:
+            dumpChar = '(';
+            break;
+        case TK_RIGHT_PAREN:
+            dumpChar = ')';
+            break;
+        case TK_STRING:
+            fprintf(outputStream, "\"%s\"", token->string);
+            return;
+        case TK_NUMERIC:
+            fprintf(outputStream, "%Lf", token->numeric);
+            return;
+        case TK_INTEGER:
+            fprintf(outputStream, "%lld", token->integer);
+            return;
+        case TK_IDENTIFIER:
+            fprintf(outputStream, "%s", token->identifier);
+            return;
+        case TK_EOF:
+            return;
+    }
+    fprintf(outputStream, "%c", dumpChar);
 }
 

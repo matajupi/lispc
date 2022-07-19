@@ -1,53 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
 
 #include "lispc.h"
 
-#define DEBUG 1
-#define MAX_OUTPUT_FILENAME_SIZE 64
-
-void usage(byte status)
+static void compile(FILE *inputStream, FILE *outputStream,
+                    GeneratorType genType)
 {
-    fprintf(stderr, "Usage: ./lispc <file>\n");
-    exit(status);
+    Token *tokenLst = tokenize(inputStream);
+    tokenLst = preprocess(tokenLst);
+// for (Token *cur = tokenLst; cur != NULL; cur = cur->next) {
+//     dumpToken(stdout, cur);
+//     printf("\n");
+// }
+    Node *topNode = parse(tokenLst);
+// dumpNode(stdout, topNode);
+    generate(topNode, outputStream, genType);
 }
 
 int main(int argc, char **argv)
 {
-    FILE *inputStream, *outputStream;
-#if DEBUG
-    inputStream  = stdin;
-    outputStream = stdout;
-#else
-    if (argc < 2) {
-        usage(EXIT_FAILURE);
-    }
-    char *inputFilename = argv[1];
-    inputStream = fopen(inputFilename, "r");
-    if (inputStream == NULL) {
-        fprintf(stderr, "Error: Cannot open \"%s\"\n", inputFilename);
-        exit(EXIT_FAILURE);
-    }
-    char outputFilename[MAX_OUTPUT_FILENAME_SIZE];
-    char *ep = strrchr(inputFilename, '.');
-    size_t filenameLength = ep == NULL ? strlen(inputFilename)
-                                       : ep - inputFilename;
-    strncpy(outputFilename, inputFilename, filenameLength);
-    strcpy(outputFilename + filenameLength, ".s");
-    outputStream = fopen(outputFilename, "w");
-#endif
-    Token *token = tokenize(inputStream);
-    Node *node = parse(token);
-    generate(node, outputStream, GEN_ARM32);
+    // Initialization
+    FILE *inputStream = stdin;
+    FILE *outputStream = stdout;
+    setErrorStream(stderr);
 
-// for (Token *cur = token; cur; cur = cur->next) {
-//     dumpToken(outputSream, cur);
-//     printf("\n");
-// }
-
-// dumpNode(outputStream, node);
+    compile(inputStream, outputStream, GEN_ARM32);
 
     fclose(inputStream);
     fclose(outputStream);

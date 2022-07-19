@@ -17,3 +17,6 @@
 (define (set-car! p new-a) ((p "set-car!") new-a))
 (define (set-cdr! p new-b) ((p "set-cdr!") new-b))
 
+; Hello world
+(print "Hello world")
+
