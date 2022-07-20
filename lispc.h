@@ -63,6 +63,7 @@ void dumpNode(FILE *outputStream, Node *node);
 typedef enum GeneratorType GeneratorType;
 enum GeneratorType
 {
+    // GEN_X8664,
     GEN_ARM32,
 };
 
@@ -73,6 +74,9 @@ struct Environment
 };
 
 void generate(Node *topNode, FILE *ostream, GeneratorType type);
+
+// ================ ARM32-Generator ================
+void generateArm32(Node *topNode, FILE *ostream);
 
 // ================ Error ================
 void setErrorStream(FILE *estream);

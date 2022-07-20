@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-g -Wall
 LDFLAGS = -lm
 TARGET=lispc
-SRCS=main.c lexer.c error.c preprocessor.c parser.c
+SRCS=main.c lexer.c error.c preprocessor.c parser.c generator.c arm32generator.c
 OBJS=$(SRCS:.c=.o)
 
 INCDIR=-I../inc

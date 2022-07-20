@@ -10,7 +10,13 @@ static Token *wrapTokenLst(Token *tokenLst)
 
     curToken->next = createToken(TK_IDENTIFIER);
     curToken = curToken->next;
-    curToken->identifier = "begin";
+    curToken->identifier = "let";
+
+    curToken->next = createToken(TK_LEFT_PAREN);
+    curToken = curToken->next;
+
+    curToken->next = createToken(TK_RIGHT_PAREN);
+    curToken = curToken->next;
 
     curToken->next = tokenLst;
     while (curToken->next->type != TK_EOF) {
