@@ -23,7 +23,7 @@ static void appendToken(Token *token)
 
 // ================ Chunk buffer ================
 static char chunkBuffer[CHUNK_BUFFER_SIZE];
-static char *chunkEnd = chunkBuffer; // TODO: ?
+static char *chunkEnd = chunkBuffer;
 
 static void appendCharToChunkBuffer(char c)
 {

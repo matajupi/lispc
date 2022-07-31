@@ -43,8 +43,11 @@ typedef enum NodeType NodeType;
 enum NodeType
 {
     ND_PAIR,
-    ND_PRIMITIVE,
     ND_NULL,
+    ND_STRING,
+    ND_INTEGER,
+    ND_NUMERIC,
+    ND_IDENTIFIER,
 };
 
 typedef struct Node Node;
@@ -53,33 +56,51 @@ struct Node
     NodeType type;
     Node *car;
     Node *cdr;
-    Token *token;
+
+    long double numeric;
+    long long integer;
+    char *identifier;
+    char *string;
 };
 
+Node *createNode(NodeType type);
 Node *parse(Token *tokenLst);
+
+Node *cons(Node *carNode, Node *cdrNode);
+Node *car(Node *pair);
+Node *cdr(Node *pair);
+
 void dumpNode(FILE *outputStream, Node *node);
+
+// ================ Formatter ================
+Node *format(Node *node);
 
 // ================ Generator ================
 typedef enum GeneratorType GeneratorType;
 enum GeneratorType
 {
-    // GEN_X8664,
-    GEN_ARM32,
+    GEN_C,
 };
 
 typedef struct Environment Environment;
 struct Environment
 {
-
+    Environment *enclosing;
+    Node **variables;
+    unsigned int numVariables;
 };
 
-void generate(Node *topNode, FILE *ostream, GeneratorType type);
+Environment *createEnvironment(size_t numBindings, Environment *enclosing);
+void generate(Node *exp, FILE *ostream, GeneratorType type);
 
-// ================ ARM32-Generator ================
-void generateArm32(Node *topNode, FILE *ostream);
+// ================ C-Generator ================
+void generateC(Node *exp, FILE *ostream);
 
 // ================ Error ================
 void setErrorStream(FILE *estream);
 void unexpectedTokenError(byte status, Token *token);
 void illegalStringError(byte status);
+void illegalNodeTypeError(byte status);
+void unimplementedFeatureError(byte status);
+void unboundVariableError(byte status);
 

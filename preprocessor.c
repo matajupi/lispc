@@ -2,15 +2,19 @@
 
 static Token *wrapTokenLst(Token *tokenLst)
 {
+    // TODO: letをサポートしないので書き換える．
     Token headToken;
     Token *curToken = &headToken;
 
     curToken->next = createToken(TK_LEFT_PAREN);
     curToken = curToken->next;
 
+    curToken->next = createToken(TK_LEFT_PAREN);
+    curToken = curToken->next;
+
     curToken->next = createToken(TK_IDENTIFIER);
     curToken = curToken->next;
-    curToken->identifier = "let";
+    curToken->identifier = "lambda";
 
     curToken->next = createToken(TK_LEFT_PAREN);
     curToken = curToken->next;
@@ -24,6 +28,9 @@ static Token *wrapTokenLst(Token *tokenLst)
     }
 
     Token *eof = curToken->next;
+
+    curToken->next = createToken(TK_RIGHT_PAREN);
+    curToken = curToken->next;
 
     curToken->next = createToken(TK_RIGHT_PAREN);
     curToken = curToken->next;

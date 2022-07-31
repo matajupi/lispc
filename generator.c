@@ -3,12 +3,12 @@
 
 #include "lispc.h"
 
-void generate(Node *topNode, FILE *ostream, GeneratorType type)
+void generate(Node *exp, FILE *ostream, GeneratorType type)
 {
     switch (type)
     {
-        case GEN_ARM32:
-            generateArm32(topNode, ostream);
+        case GEN_C:
+            generateC(exp, ostream);
             break;
     }
 }

@@ -24,3 +24,21 @@ void illegalStringError(byte status)
     exit(status);
 }
 
+void illegalNodeTypeError(byte status)
+{
+    fprintf(errorStream, "Error: Illegal node type.\n");
+    exit(status);
+}
+
+void unimplementedFeatureError(byte status)
+{
+    fprintf(errorStream, "Error: This feature has not been implemented yet.\n");
+    exit(status);
+}
+
+void unboundVariableError(byte status)
+{
+    fprintf(errorStream, "Error: Unbound variable.\n");
+    exit(status);
+}
+

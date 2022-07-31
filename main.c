@@ -12,9 +12,11 @@ static void compile(FILE *inputStream, FILE *outputStream,
 //     dumpToken(stdout, cur);
 //     printf("\n");
 // }
-    Node *topNode = parse(tokenLst);
-// dumpNode(stdout, topNode);
-    generate(topNode, outputStream, genType);
+    Node *exp = parse(tokenLst);
+// dumpNode(stdout, exp);
+    // format(exp);
+// dumpNode(stdout, exp);
+    generate(exp, outputStream, genType);
 }
 
 int main(int argc, char **argv)
@@ -24,7 +26,7 @@ int main(int argc, char **argv)
     FILE *outputStream = stdout;
     setErrorStream(stderr);
 
-    compile(inputStream, outputStream, GEN_ARM32);
+    compile(inputStream, outputStream, GEN_C);
 
     fclose(inputStream);
     fclose(outputStream);
