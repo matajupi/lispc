@@ -70,6 +70,16 @@ static unsigned int length(Node *exps)
     return n;
 }
 
+static Node *operator(Node *exp)
+{
+    return car(exp);
+}
+
+static Node *operands(Node *exp)
+{
+    return cdr(exp);
+}
+
 // ================ Generators ================
 static void genRecursive(Node *exp, Environment *env);
 static void genSequence(Node *exp, Environment *env);
@@ -395,16 +405,6 @@ static bool isApplication(Node *exp)
     return isPair(exp);
 }
 
-static Node *operator(Node *exp)
-{
-    return car(exp);
-}
-
-static Node *operands(Node *exp)
-{
-    return cdr(exp);
-}
-
 static void genListOfValuesReverseOrder(Node *exps, Environment *env)
 {
     if (isNull(exps)) {
@@ -431,7 +431,11 @@ static void genApplication(Node *exp, Environment *env)
 // ================ Other ================
 static void genRecursive(Node *exp, Environment *env)
 {
-    // TODO: or, and
+    // or, andのshort-circuit-evaluationは今度サポートする
+    // 可変引数はとりあえず実装しない
+    // cond, define procedure, let, numeric, boolean, symbolなどもとりあえず実装しない
+    // Typeはとりあえずサポートしない
+    // 引数の数はとりあえずサポートしない
     if (isNull(exp)) {
         genNull();
     }
@@ -484,17 +488,57 @@ static char *primitiveProcedureVariables[] =
     "+",
     "-",
     "*",
+    "/",
+    "remainder",
+    "=",
+    "eq?",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "not",
+    "eq-str?",
+
+    "print",
+    "int->string",
 };
 
 static char *primitiveProcedureFunctions[] =
 {
-    "add",
-    "sub",
-    "mul",
+    "pAdd",
+    "pSub",
+    "pMul",
+    "pDiv",
+    "pRemainder",
+    "pEqual",
+    "pEqual",
+    "pGreater",
+    "pGreaterEqual",
+    "pLess",
+    "pLessEqual",
+    "pNot",
+    "pEqualString",
+
+    "pPrint",
+    "pInt2string",
 };
+
+static size_t getNumPrimitiveProcedures()
+{
+    return sizeof(primitiveProcedureVariables) / sizeof(char *);
+}
 
 static void genBindPrimitiveProcedures(Environment *env)
 {
+    size_t numPrimitiveProcedures = getNumPrimitiveProcedures();
+    for (unsigned int i = 0; numPrimitiveProcedures > i; i++) {
+        env->variables[i] = primitiveProcedureVariables[i];
+        gen("r0 = malloc(sizeof(Procedure));");
+        gen("((Procedure *)r0)->func = %s;", primitiveProcedureFunctions[i]);
+        gen("((Procedure *)r0)->base = env;");
+        gen("env->bindings[%u] = r0;", i);
+    }
+    env->numVariables = numPrimitiveProcedures;
 }
 
 static void genMain(Node *exp)
@@ -502,7 +546,7 @@ static void genMain(Node *exp)
     gen("int main() {");
     gen("initMachine();");
     init();
-    size_t numPrimitiveProcedures = sizeof(primitiveProcedures) / sizeof(char *);
+    size_t numPrimitiveProcedures = getNumPrimitiveProcedures();
     genEnvironment(numPrimitiveProcedures);
     Environment *env = createEnvironment(numPrimitiveProcedures, NULL);
     genBindPrimitiveProcedures(env);
@@ -520,6 +564,9 @@ static void genHeader()
 {
     gen("#include <stdio.h>");
     gen("#include <stdlib.h>");
+    gen("#include <string.h>");
+    gen("");
+    gen("#define INT2STRING_BUFFER_SIZE 32");
     gen("");
     gen("#define STACK_SIZE 1024");
     gen("#define MAX_NUM_ARGUMENTS 64");
@@ -597,6 +644,124 @@ static void genHeader()
     gen("fp = pop();");
     gen("env = pop();");
     gen("}");
+    gen("");
+    gen("void applyIntBinaryOperator(long long (*operator)(long long, long long))");
+    gen("{");
+    gen("r0 = args[0];");
+    gen("r1 = args[1];");
+    gen("ret = malloc(sizeof(Integer));");
+    gen("((Integer *)ret)->content = operator(((Integer *)r0)->content, ((Integer *)r1)->content);");
+    gen("}");
+    gen("");
+    gen("void applyIntUnaryOperator(long long (*operator)(long long))");
+    gen("{");
+    gen("r0 = args[0];");
+    gen("ret = malloc(sizeof(Integer));");
+    gen("((Integer *)ret)->content = operator(((Integer *)r0)->content);");
+    gen("}");
+    gen("");
+    gen("long long opAdd(long long v1, long long v2) { return v1 + v2; }");
+    gen("");
+    gen("void pAdd()");
+    gen("{");
+    gen("applyIntBinaryOperator(opAdd);");
+    gen("}");
+    gen("");
+    gen("long long opSub(long long v1, long long v2) { return v1 - v2; }");
+    gen("");
+    gen("void pSub()");
+    gen("{");
+    gen("applyIntBinaryOperator(opSub);");
+    gen("}");
+    gen("");
+    gen("long long opMul(long long v1, long long v2) { return v1 * v2; }");
+    gen("");
+    gen("void pMul()");
+    gen("{");
+    gen("applyIntBinaryOperator(opMul);");
+    gen("}");
+    gen("");
+    gen("long long opDiv(long long v1, long long v2) { return v1 / v2; }");
+    gen("");
+    gen("void pDiv()");
+    gen("{");
+    gen("applyIntBinaryOperator(opDiv);");
+    gen("}");
+    gen("");
+    gen("long long opRemainder(long long v1, long long v2) { return v1 % v2; }");
+    gen("");
+    gen("void pRemainder()");
+    gen("{");
+    gen("applyIntBinaryOperator(opRemainder);");
+    gen("}");
+    gen("");
+    gen("long long opEqual(long long v1, long long v2) { return v1 == v2; }");
+    gen("");
+    gen("void pEqual()");
+    gen("{");
+    gen("applyIntBinaryOperator(opEqual);");
+    gen("}");
+    gen("");
+    gen("long long opGreater(long long v1, long long v2) { return v1 > v2; }");
+    gen("");
+    gen("void pGreater()");
+    gen("{");
+    gen("applyIntBinaryOperator(opGreater);");
+    gen("}");
+    gen("");
+    gen("long long opGreaterEqual(long long v1, long long v2) { return v1 >= v2; }");
+    gen("");
+    gen("void pGreaterEqual()");
+    gen("{");
+    gen("applyIntBinaryOperator(opGreaterEqual);");
+    gen("}");
+    gen("");
+    gen("long long opLess(long long v1, long long v2) { return v1 < v2; }");
+    gen("");
+    gen("void pLess()");
+    gen("{");
+    gen("applyIntBinaryOperator(opLess);");
+    gen("}");
+    gen("");
+    gen("long long opLessEqual(long long v1, long long v2) { return v1 <= v2; }");
+    gen("");
+    gen("void pLessEqual()");
+    gen("{");
+    gen("applyIntBinaryOperator(opLessEqual);");
+    gen("}");
+    gen("");
+    gen("long long opNot(long long v) { return !v; }");
+    gen("");
+    gen("void pNot()");
+    gen("{");
+    gen("applyIntUnaryOperator(opNot);");
+    gen("}");
+    gen("");
+    gen("void pEqualString()");
+    gen("{");
+    gen("r0 = args[0];");
+    gen("r1 = args[1];");
+    gen("ret = malloc(sizeof(Integer));");
+    gen("((Integer *)ret)->content = strcmp(((String *)r0)->content, ((String *)r1)->content) == 0;");
+    gen("}");
+    gen("");
+    gen("void pPrint()");
+    gen("{");
+    gen("r0 = args[0];");
+    gen("printf(\"%%s\\n\", ((String *)r0)->content);");
+    gen("}");
+    gen("");
+    gen("void pInt2string()");
+    gen("{");
+    gen("r0 = args[0];");
+    gen("");
+    gen("char *buffer = malloc(sizeof(char) * INT2STRING_BUFFER_SIZE);");
+    gen("sprintf(buffer, \"%%lld\", ((Integer *)r0)->content);");
+    gen("");
+    gen("ret = malloc(sizeof(String));");
+    gen("((String *)ret)->content = buffer;");
+    gen("}");
+    gen("");
 }
 
 static char buffer[BUFFER_SIZE];
