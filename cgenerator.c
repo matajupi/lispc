@@ -105,7 +105,8 @@ static int lookupVariableAddress(char *var, Environment *env)
     return address;
 }
 
-static void genScanVariable(char *var, Environment *env, void (*foundProc)(int))
+static void genScanVariable(char *var, Environment *env,
+                            void (*foundProc)(int), void (*notFoundProc)())
 {
     gen("r0 = env;");
     for (Environment *cur = env; cur != NULL; cur = cur->enclosing) {
@@ -116,6 +117,11 @@ static void genScanVariable(char *var, Environment *env, void (*foundProc)(int))
         }
         gen("r0 = ((Environment *)r0)->enclosing;");
     }
+    notFoundProc();
+}
+
+static void throwUnboundVariableError()
+{
     unboundVariableError(EXIT_FAILURE);
 }
 
@@ -131,7 +137,7 @@ static void genSetVariableValue(int address)
 
 static void genVariable(Node *exp, Environment *env)
 {
-    genScanVariable(exp->identifier, env, genGetVariableValue);
+    genScanVariable(exp->identifier, env, genGetVariableValue, throwUnboundVariableError);
 }
 
 // ================ Null ================
@@ -169,10 +175,17 @@ static Node *definitionValue(Node *exp)
 
 static void genDefinition(Node *exp, Environment *env)
 {
-    env->variables[env->numVariables] = definitionVariable(exp);
     genRecursive(definitionValue(exp), env);
-    gen("env->bindings[%u] = pop();", env->numVariables);
-    env->numVariables++;
+    Node *var = definitionVariable(exp);
+    int address = lookupVariableAddress(var->identifier, env);
+    if (address == -1) {
+        env->variables[env->numVariables] = var;
+        gen("env->bindings[%u] = pop();", env->numVariables);
+        env->numVariables++;
+    }
+    else {
+        gen("env->bindings[%d] = pop();", address);
+    }
 }
 
 // ================ Assignment ================
@@ -198,7 +211,48 @@ static Node *assignmentValue(Node *exp)
 static void genAssignment(Node *exp, Environment *env)
 {
     genRecursive(assignmentValue(exp), env);
-    genScanVariable(assignmentVariable(exp)->identifier, env, genSetVariableValue);
+    genScanVariable(assignmentVariable(exp)->identifier, env,
+                    genSetVariableValue, throwUnboundVariableError);
+}
+
+// ================ If ================
+static bool isIf(Node *exp)
+{
+    return isTaggedList(exp, "if");
+}
+
+static Node *ifPredicate(Node *exp)
+{
+    return car(cdr(exp));
+}
+
+static Node *ifConsequent(Node *exp)
+{
+    return car(cdr(cdr(exp)));
+}
+
+static bool hasIfAlternative(Node *exp)
+{
+    return isPair(cdr(cdr(cdr(exp))));
+}
+
+static Node *ifAlternative(Node *exp)
+{
+    return car(cdr(cdr(cdr(exp))));
+}
+
+static void genIf(Node *exp, Environment *env)
+{
+    genRecursive(ifPredicate(exp), env);
+    gen("r0 = pop();");
+    gen("if (((Integer *)r0)->content) {");
+    genRecursive(ifConsequent(exp), env);
+    gen("}");
+    if (hasIfAlternative(exp)) {
+        gen("else {");
+        genRecursive(ifAlternative(exp), env);
+        gen("}");
+    }
 }
 
 // ================ Lambda ================
@@ -376,6 +430,9 @@ static void genRecursive(Node *exp, Environment *env)
     }
     else if (isAssignment(exp)) {
         genAssignment(exp, env);
+    }
+    else if (isIf(exp)) {
+        genIf(exp, env);
     }
     else if (isLambda(exp)) {
         genProcedure(exp, env);

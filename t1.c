@@ -90,7 +90,7 @@ return ((Integer *)ret)->content;
 void Lambda0() {
 stmfd();
 env = malloc(sizeof(Environment));
-env->bindings = malloc(sizeof(void *) * 2);
+env->bindings = malloc(sizeof(void *) * 3);
 env->enclosing = benv;
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 0;
@@ -99,10 +99,23 @@ r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 3;
 push(r0);
 env->bindings[0] = pop();
+r0 = env;
+push(((Environment *)r0)->bindings[0]);
+r0 = pop();
+if (((Integer *)r0)->content) {
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 4;
 push(r0);
 env->bindings[1] = pop();
+}
+else {
+r0 = malloc(sizeof(Integer));
+((Integer *)r0)->content = 5;
+push(r0);
+env->bindings[1] = pop();
+}
+r0 = env;
+push(((Environment *)r0)->bindings[1]);
 ret = pop();
 ldmfd();
 }
