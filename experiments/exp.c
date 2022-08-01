@@ -8,6 +8,7 @@
 typedef struct Environment Environment;
 typedef struct Procedure Procedure;
 typedef struct Integer Integer;
+typedef struct String String;
 
 // ================ Machine ================
 // ================ Registers ================
@@ -39,14 +40,12 @@ void initMachine()
     proc = NULL;
 }
 
-// ================ Environment ================
 struct Environment
 {
     void *bindings;
     Environment *enclosing;
 };
 
-// ================ Procedure ================
 struct Procedure
 {
     void (*func)();
@@ -59,13 +58,16 @@ void call()
     proc->func();
 }
 
-// ================ Integer ================
 struct Integer
 {
     long long content;
 };
 
-// ================ stmfd, ldmfd ================
+struct String
+{
+    const char *content;
+};
+
 void stmfd()
 {
     push(env);

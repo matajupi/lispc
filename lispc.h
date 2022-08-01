@@ -86,7 +86,7 @@ typedef struct Environment Environment;
 struct Environment
 {
     Environment *enclosing;
-    Node **variables;
+    char **variables;
     unsigned int numVariables;
 };
 

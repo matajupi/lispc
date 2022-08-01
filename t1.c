@@ -7,6 +7,7 @@
 typedef struct Environment Environment;
 typedef struct Procedure Procedure;
 typedef struct Integer Integer;
+typedef struct String String;
 
 size_t sp, fp;
 void *ret, *r0, *r1, *r2, *r3;
@@ -58,6 +59,11 @@ struct Integer
 long long content;
 };
 
+struct String
+{
+const char *content;
+};
+
 void stmfd()
 {
 push(env);
@@ -72,6 +78,7 @@ fp = pop();
 env = pop();
 }
 void Lambda0();
+void Lambda1();
 int main() {
 initMachine();
 env = malloc(sizeof(Environment));
@@ -90,30 +97,47 @@ return ((Integer *)ret)->content;
 void Lambda0() {
 stmfd();
 env = malloc(sizeof(Environment));
-env->bindings = malloc(sizeof(void *) * 3);
+env->bindings = malloc(sizeof(void *) * 1);
 env->enclosing = benv;
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 0;
 push(r0);
-r0 = malloc(sizeof(Integer));
-((Integer *)r0)->content = 3;
+r0 = malloc(sizeof(Procedure));
+((Procedure *)r0)->func = Lambda1;
+((Procedure *)r0)->base = env;
 push(r0);
 env->bindings[0] = pop();
 r0 = env;
 push(((Environment *)r0)->bindings[0]);
-r0 = pop();
-if (((Integer *)r0)->content) {
-r0 = malloc(sizeof(Integer));
-((Integer *)r0)->content = 4;
-push(r0);
-env->bindings[1] = pop();
-}
-else {
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 5;
 push(r0);
-env->bindings[1] = pop();
+r0 = malloc(sizeof(Integer));
+((Integer *)r0)->content = 4;
+push(r0);
+r0 = malloc(sizeof(Integer));
+((Integer *)r0)->content = 3;
+push(r0);
+args[0] = pop();
+args[1] = pop();
+args[2] = pop();
+proc = pop();
+call();
+push(ret);
+ret = pop();
+ldmfd();
 }
+void Lambda1() {
+stmfd();
+env = malloc(sizeof(Environment));
+env->bindings = malloc(sizeof(void *) * 3);
+env->enclosing = benv;
+env->bindings[0] = args[0];
+env->bindings[1] = args[1];
+env->bindings[2] = args[2];
+r0 = malloc(sizeof(Integer));
+((Integer *)r0)->content = 0;
+push(r0);
 r0 = env;
 push(((Environment *)r0)->bindings[1]);
 ret = pop();

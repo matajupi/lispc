@@ -14,7 +14,7 @@ Environment *createEnvironment(size_t numBindings, Environment *enclosing)
 {
     Environment *env = calloc(1, sizeof(Environment));
     env->enclosing = enclosing;
-    env->variables = calloc(numBindings, sizeof(Node*));
+    env->variables = calloc(numBindings, sizeof(char *));
     env->numVariables = 0;
     return env;
 }
@@ -93,12 +93,26 @@ static void genInteger(long long integer)
     gen("((Integer *)r0)->content = %lld;", integer);
     gen("push(r0);");
 }
+
+// ================ String ================
+static bool isString(Node *exp)
+{
+    return verifyNodeType(exp, ND_STRING);
+}
+
+static void genString(char *str)
+{
+    gen("r0 = malloc(sizeof(String));");
+    gen("((String *)r0)->content = \"%s\";", str);
+    gen("push(r0);");
+}
+
 // ================ Variable ================
 static int lookupVariableAddress(char *var, Environment *env)
 {
     int address = -1;
     for (int i = 0; env->numVariables > i; i++) {
-        if (strcmp(var, env->variables[i]->identifier) == 0) {
+        if (strcmp(var, env->variables[i]) == 0) {
             address = i;
         }
     }
@@ -108,6 +122,8 @@ static int lookupVariableAddress(char *var, Environment *env)
 static void genScanVariable(char *var, Environment *env,
                             void (*foundProc)(int), void (*notFoundProc)())
 {
+    // 環境を外側に向かって探索．束縛が見つかればfoundProcを実行．
+    // 見つからなければnotFoundProcを実行．
     gen("r0 = env;");
     for (Environment *cur = env; cur != NULL; cur = cur->enclosing) {
         int address = lookupVariableAddress(var, cur);
@@ -175,11 +191,13 @@ static Node *definitionValue(Node *exp)
 
 static void genDefinition(Node *exp, Environment *env)
 {
+    // "現在の" 環境にすでに同名の束縛が存在すれば代入．
+    // そうでなければ束縛を追加．
     genRecursive(definitionValue(exp), env);
     Node *var = definitionVariable(exp);
     int address = lookupVariableAddress(var->identifier, env);
     if (address == -1) {
-        env->variables[env->numVariables] = var;
+        env->variables[env->numVariables] = var->identifier;
         gen("env->bindings[%u] = pop();", env->numVariables);
         env->numVariables++;
     }
@@ -297,7 +315,7 @@ static unsigned int countDefinitions(Node *exp)
     return numDefinitions;
 }
 
-static void bindParameters(Node *params, Environment *env)
+static void genBindParameters(Node *params, Environment *env)
 {
     unsigned int i = 0;
     for (Node *cur = params; isPair(cur); cur = cdr(cur)) {
@@ -305,7 +323,8 @@ static void bindParameters(Node *params, Environment *env)
         if (!isIdentifier(ident)) {
             illegalNodeTypeError(EXIT_FAILURE);
         }
-        env->variables[i] = ident;
+        env->variables[i] = ident->identifier;
+        gen("env->bindings[%u] = args[%u];", i, i);
         i++;
     }
     env->numVariables = i;
@@ -342,10 +361,7 @@ static void genLambda(unsigned int id)
 
     genEnvironment(numBindings);
     Environment *env = createEnvironment(numBindings, benv);
-    bindParameters(params, env);
-    for (unsigned int i = 0; numParams > i; i++) {
-        gen("env->bindings[%u] = args[%u];", i, i);
-    }
+    genBindParameters(params, env);
 
     genNull();
     genSequence(body, env);
@@ -415,12 +431,15 @@ static void genApplication(Node *exp, Environment *env)
 // ================ Other ================
 static void genRecursive(Node *exp, Environment *env)
 {
-    // TODO: string, if, or, and
+    // TODO: or, and
     if (isNull(exp)) {
         genNull();
     }
     else if (isInteger(exp)) {
         genInteger(exp->integer);
+    }
+    else if (isString(exp)) {
+        genString(exp->string);
     }
     else if (isIdentifier(exp)) {
         genVariable(exp, env);
@@ -460,14 +479,33 @@ static void init()
     numLambdas = 0;
 }
 
+static char *primitiveProcedureVariables[] =
+{
+    "+",
+    "-",
+    "*",
+};
+
+static char *primitiveProcedureFunctions[] =
+{
+    "add",
+    "sub",
+    "mul",
+};
+
+static void genBindPrimitiveProcedures(Environment *env)
+{
+}
+
 static void genMain(Node *exp)
 {
     gen("int main() {");
     gen("initMachine();");
     init();
-    genEnvironment(0);
-    Environment *env = createEnvironment(0, NULL);
-    // TODO: add primitive procedures
+    size_t numPrimitiveProcedures = sizeof(primitiveProcedures) / sizeof(char *);
+    genEnvironment(numPrimitiveProcedures);
+    Environment *env = createEnvironment(numPrimitiveProcedures, NULL);
+    genBindPrimitiveProcedures(env);
     genRecursive(exp, env);
     gen("ret = pop();");
     gen("return ((Integer *)ret)->content;");
@@ -489,6 +527,7 @@ static void genHeader()
     gen("typedef struct Environment Environment;");
     gen("typedef struct Procedure Procedure;");
     gen("typedef struct Integer Integer;");
+    gen("typedef struct String String;");
     gen("");
     gen("size_t sp, fp;");
     gen("void *ret, *r0, *r1, *r2, *r3;");
@@ -538,6 +577,11 @@ static void genHeader()
     gen("struct Integer");
     gen("{");
     gen("long long content;");
+    gen("};");
+    gen("");
+    gen("struct String");
+    gen("{");
+    gen("const char *content;");
     gen("};");
     gen("");
     gen("void stmfd()");
