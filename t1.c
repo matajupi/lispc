@@ -72,8 +72,6 @@ fp = pop();
 env = pop();
 }
 void Lambda0();
-void Lambda1();
-void Lambda2();
 int main() {
 initMachine();
 env = malloc(sizeof(Environment));
@@ -97,56 +95,14 @@ env->enclosing = benv;
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 0;
 push(r0);
-r0 = malloc(sizeof(Procedure));
-((Procedure *)r0)->func = Lambda1;
-((Procedure *)r0)->base = env;
+r0 = malloc(sizeof(Integer));
+((Integer *)r0)->content = 3;
 push(r0);
 env->bindings[0] = pop();
-r0 = env;
-push(((Environment *)r0)->bindings[0]);
 r0 = malloc(sizeof(Integer));
 ((Integer *)r0)->content = 4;
 push(r0);
-args[0] = pop();
-proc = pop();
-call();
-push(ret);
 env->bindings[1] = pop();
-r0 = env;
-push(((Environment *)r0)->bindings[1]);
-proc = pop();
-call();
-push(ret);
-ret = pop();
-ldmfd();
-}
-void Lambda1() {
-stmfd();
-env = malloc(sizeof(Environment));
-env->bindings = malloc(sizeof(void *) * 1);
-env->enclosing = benv;
-env->bindings[0] = args[0];
-r0 = malloc(sizeof(Integer));
-((Integer *)r0)->content = 0;
-push(r0);
-r0 = malloc(sizeof(Procedure));
-((Procedure *)r0)->func = Lambda2;
-((Procedure *)r0)->base = env;
-push(r0);
-ret = pop();
-ldmfd();
-}
-void Lambda2() {
-stmfd();
-env = malloc(sizeof(Environment));
-env->bindings = malloc(sizeof(void *) * 0);
-env->enclosing = benv;
-r0 = malloc(sizeof(Integer));
-((Integer *)r0)->content = 0;
-push(r0);
-r0 = env;
-r0 = ((Environment *)r0)->enclosing;
-push(((Environment *)r0)->bindings[0]);
 ret = pop();
 ldmfd();
 }
