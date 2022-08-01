@@ -117,3 +117,22 @@ void pInt2string()
     ((String *)ret)->content = buffer;
 }
 
+void pIsNull()
+{
+    pNot();
+}
+
+long long opOr(long long v1, long long v2) { return v1 || v2; }
+
+void pOr()
+{
+    applyIntBinaryOperator(opOr);
+}
+
+long long opAnd(long long v1, long long v2) { return v1 && v2; }
+
+void pAnd()
+{
+    applyIntBinaryOperator(opAnd);
+}
+

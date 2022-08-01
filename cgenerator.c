@@ -497,10 +497,14 @@ static char *primitiveProcedureVariables[] =
     "<",
     "<=",
     "not",
-    "eq-str?",
+    "string=",
 
     "print",
     "int->string",
+
+    "null?",
+    "or", // TODO: short circuit
+    "and", // TODO: short circuit
 };
 
 static char *primitiveProcedureFunctions[] =
@@ -521,6 +525,10 @@ static char *primitiveProcedureFunctions[] =
 
     "pPrint",
     "pInt2string",
+
+    "pIsNull",
+    "pOr",
+    "pAnd",
 };
 
 static size_t getNumPrimitiveProcedures()
@@ -760,6 +768,25 @@ static void genHeader()
     gen("");
     gen("ret = malloc(sizeof(String));");
     gen("((String *)ret)->content = buffer;");
+    gen("}");
+    gen("");
+    gen("void pIsNull()");
+    gen("{");
+    gen("pNot();");
+    gen("}");
+    gen("");
+    gen("long long opOr(long long v1, long long v2) { return v1 || v2; }");
+    gen("");
+    gen("void pOr()");
+    gen("{");
+    gen("applyIntBinaryOperator(opOr);");
+    gen("}");
+    gen("");
+    gen("long long opAnd(long long v1, long long v2) { return v1 && v2; }");
+    gen("");
+    gen("void pAnd()");
+    gen("{");
+    gen("applyIntBinaryOperator(opAnd);");
     gen("}");
     gen("");
 }
