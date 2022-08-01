@@ -497,7 +497,7 @@ static char *primitiveProcedureVariables[] =
     "<",
     "<=",
     "not",
-    "string=",
+    "string=?",
 
     "print",
     "int->string",
