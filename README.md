@@ -1,6 +1,6 @@
 # LISPC（発表用資料）
 ## 動機
-Structures and Interpretations of Computer Programs (SICP) (https://www.vocrf.net/docs_ja/jsicp.pdf) の4章ではLispのInterpreterを何個も実装する．私も例にもれずその洗礼を受けていた．その時に”Lispは普通Interpreter上で動作するが，頑張ればCompilerも作れるのでは？”と思い立ったのがきっかけ．
+私の読んでいるStructures and Interpretations of Computer Programs (SICP) (https://www.vocrf.net/docs_ja/jsicp.pdf) の4章ではLispのInterpreterを何個も実装する．その時に”Lispは普通Interpreter上で動作するが，頑張ればCompilerも作れるのでは？”と思い立ったのがきっかけ．
 ## 機能
 すべてのLispの機能を一人で短期間で実装するのは非常に厳しいので今回は条件分岐や手続きなど基本的な機能に加え，個人的に実装したい機能のみを実装した．
 今回実装した少し特殊な機能は動的型付けとクロージャである．
