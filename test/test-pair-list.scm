@@ -38,10 +38,9 @@
                         (iter (cdr lst))))))
         (iter lst)))
 
-(define lst null)
 (define create-lst
     (lambda (n)
-        (if (= n 0)
+        (if (< n 0)
             null
             (cons n (create-lst (- n 1))))))
 

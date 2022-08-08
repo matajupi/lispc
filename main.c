@@ -22,6 +22,7 @@ static void compile(FILE *inputStream, FILE *outputStream,
 int main(int argc, char **argv)
 {
     // Initialization
+    // DEBUG
     FILE *inputStream = stdin;
     FILE *outputStream = stdout;
     setErrorStream(stderr);
